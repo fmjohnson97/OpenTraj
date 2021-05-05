@@ -9,13 +9,15 @@ from torchvision.transforms import Compose, Resize, GaussianBlur
 from utils import world2image
 
 class OpTrajData(Dataset):
-    def __init__(self,dataset='ETH',mode='by_frame', image=None):
+    def __init__(self,dataset='ETH',mode='by_frame', image=None,input_window=4, output_window=8):
         super(OpTrajData,self).__init__()
         # self.root='/Users/faith_johnson/GitRepos/OpenTraj/'
         self.root='/home/faith/GitRepos/OpenTraj/'
         self.mode=mode
         self.image=image
         self.transforms=Compose([GaussianBlur(5)])
+        self.input_window = input_window
+        self.output_window = output_window
         if dataset=='ETH':
             self.H = np.loadtxt(self.root + 'datasets/ETH/seq_eth/H.txt')
             self.H=np.linalg.inv(self.H)
@@ -74,27 +76,43 @@ class OpTrajData(Dataset):
 
     def getOneFrame(self,item):
         # import pdb; pdb.set_trace()
-        frameID=[self.dataset.data['frame_id'].unique()[item]]
-        if self.image is not None:
-            frame=self.getImages(frameID)
-        else:
-            frame=[]
-        people=self.dataset.get_frames(frameID)[0]
-        targ_people=[]
-        i=1
-        while len(targ_people)==0:
-            targ_people=self.dataset.get_frames([frameID[0]+i])[0]
-            i+=1
-        inds = targ_people.agent_id.isin(people.agent_id)
-        targ_people=targ_people[inds]
-        targ_locs=targ_people.filter(['pos_x','pos_y']).to_numpy()
-        inds = people.agent_id.isin(targ_people.agent_id)
-        people = people[inds]
-        peopleIDs = people['agent_id'].tolist()
-        locs = people.filter(['pos_x', 'pos_y']).to_numpy()
-        # import pdb; pdb.set_trace()
-        if self.image == 'mask':
-            frame = self.getMasks(frame, np.expand_dims(locs, 0))
+        peopleIDs = []
+        locs = []
+        frame = []
+        for window in range(self.input_window + self.output_window):
+            frameID = [self.dataset.data['frame_id'].unique()[item + window]]
+            if self.image is not None:
+                frame.append(self.getImages(frameID))
+            people = self.dataset.get_frames(frameID)[0]
+            peopleIDs.append(people['agent_id'].tolist())
+            locs.append(people.filter(['pos_x', 'pos_y']).to_numpy())
+            if self.image == 'mask':
+                frame = self.getMasks(frame[-1], np.expand_dims(locs[-1], 0))
+
+        targ_locs = locs[-self.output_window:]
+        locs = locs[:self.input_window]
+
+        # frameID=[self.dataset.data['frame_id'].unique()[item]]
+        # if self.image is not None:
+        #     frame=self.getImages(frameID)
+        # else:
+        #     frame=[]
+        # people=self.dataset.get_frames(frameID)[0]
+        # targ_people=[]
+        # i=1
+        # while len(targ_people)==0:
+        #     targ_people=self.dataset.get_frames([frameID[0]+i])[0]
+        #     i+=1
+        # inds = targ_people.agent_id.isin(people.agent_id)
+        # targ_people=targ_people[inds]
+        # targ_locs=targ_people.filter(['pos_x','pos_y']).to_numpy()
+        # inds = people.agent_id.isin(targ_people.agent_id)
+        # people = people[inds]
+        # peopleIDs = people['agent_id'].tolist()
+        # locs = people.filter(['pos_x', 'pos_y']).to_numpy()
+        # # import pdb; pdb.set_trace()
+        # if self.image == 'mask':
+        #     frame = self.getMasks(frame, np.expand_dims(locs, 0))
         return [peopleIDs, locs, targ_locs, frame]
 
     def getOneHumanTraj(self,item):
@@ -110,9 +128,9 @@ class OpTrajData(Dataset):
         # return [torch.FloatTensor(positions),torch.FloatTensor(frames)]
         return [positions[:-1,:], positions[1:,:], frames]
 
-# x=OpTrajData(dataset='UCY',image='mask', mode='by_frame')
+# x=OpTrajData(dataset='ETH',image='mask', mode='by_frame')
 # d=DataLoader(x,batch_size=1,shuffle=False)
-# pos, pos_1, fram=x.__getitem__(3)
+# people, pos, pos_1, fram=x.__getitem__(3)
 # import pdb; pdb.set_trace()
 # for pid, pos, targ, img in d:
 #     try:
