@@ -13,30 +13,38 @@ class OpTrajData(Dataset):
         super(OpTrajData,self).__init__()
         self.root='/Users/faith_johnson/GitRepos/OpenTraj/'
         # self.root='/home/faith/GitRepos/OpenTraj/'
+        self.name=dataset
+        # H path, Vid Path, load_X arguments
+        self.paths={'ETH':['datasets/ETH/seq_eth/H.txt','datasets/ETH/seq_eth/video.avi','/datasets/ETH/seq_eth/obsmat.txt'],
+                    'ETH_Hotel':['datasets/ETH/seq_hotel/H.txt','datasets/ETH/seq_hotel/video.avi','/datasets/ETH/seq_hotel/obsmat.txt'],
+                    'UCY_Zara1':['datasets/UCY/zara01/H.txt','datasets/UCY/zara01/video.avi','datasets/UCY/zara01/annotation.vsp'],
+                    'UCY_Zara2':['datasets/UCY/zara02/H.txt','datasets/UCY/zara02/video.avi','datasets/UCY/zara02/annotation.vsp']}
+                    #students 3 might take some extra pixel computations, so not including for now
+                    #'UCY_Stud3':['datasets/UCY/zara01/H.txt','datasets/UCY/zara01/video.avi','datasets/UCY/zara01/annotation.vsp','datasets/UCY/zara01/H.txt']}
+
         self.mode=mode
         self.image=image
         self.transforms=Compose([GaussianBlur(5)])
         self.input_window = input_window
         self.output_window = output_window
-        if dataset=='ETH':
-            self.H = np.loadtxt(self.root + 'datasets/ETH/seq_eth/H.txt')
+        try:
+            paths=self.paths[dataset]
+        except Exception as e:
+            print(e)
+            print('Unsupported Dataset for OpTrajData:',dataset)
+            import pdb; pdb.set_trace()
+        self.H = np.loadtxt(self.root + paths[0])
+        self.video=cv2.VideoCapture(self.root+paths[1])
+        if 'ETH' in dataset:
             self.H=np.linalg.inv(self.H)
-            video_path = 'datasets/ETH/seq_eth/video.avi'
-            self.dataset=load_eth(self.root+'/datasets/ETH/seq_eth/obsmat.txt')
-        elif dataset=='UCY':
+            self.dataset = load_eth(self.root + paths[2])
+        elif 'UCY' in dataset:
             print('WARNING: MASKS/IMAGES ARE NOT CURRENTLY SUPPORTED FOR THIS DATASET')
-            # hard coding to zara01
-            self.H = np.loadtxt(self.root + 'datasets/UCY/zara01/H.txt')
-            self.dataset = load_crowds('datasets/UCY/zara01/annotation.vsp', use_kalman=False,homog_file='datasets/UCY/zara01/H.txt')
-            video_path = 'datasets/UCY/zara01/video.avi'
-
+            self.dataset = load_crowds(paths[2], use_kalman=False,homog_file=paths[0])
 
         if self.mode=='by_human':
             self.trajectory=self.dataset.get_trajectories()
             self.groups=self.trajectory.indices
-        self.video=cv2.VideoCapture(self.root+video_path)
-
-
 
     def __len__(self):
         if self.mode=='by_human':
@@ -67,7 +75,6 @@ class OpTrajData(Dataset):
             fram = np.zeros_like(i)
             for loc in locs[ind]:
                 pix_loc=world2image(np.array([loc]),self.H)
-                # print(pix_loc)
                 cv2.circle(fram,tuple(pix_loc[0]),5,(255,255,255),-1)
             frames.append(self.transforms(torch.FloatTensor(fram)))
             # cv2.imshow('test',frame)
