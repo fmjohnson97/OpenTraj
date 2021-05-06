@@ -1,3 +1,5 @@
+This repository has my implementation of Social LSTM along with (hopefully eventually) a Social Transformer on top of the OpenTraj github (for ease of data fetching/usage/etc).  The current master takes in one previous frame and predicts the next frame. Currently working on a branch that takes in multiple frames and predicts out on multiple frames.
+_______________________________________________________________________________________________________________________
 # OpenTraj
 ### Human Trajectory Prediction Dataset Benchmark
 We introduce existing datasets for Human Trajectory Prediction (HTP) task, and also provide tools to load, visualize and analyze datasets. So far multiple datasets are supported.
