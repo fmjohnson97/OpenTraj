@@ -63,7 +63,7 @@ Using python files in [loaders](toolkit/loaders) dir, you can load a dataset int
 A simple script is added [play.py](toolkit/ui/play.py), and can be used to visualize a given dataset:
 
 <p align='center'>
-  <img src='doc/figs/fig-opentraj-ui.gif' width='400px'\>
+  <img src='docs/figs/fig-opentraj-ui.gif' width='400px'\>
 </p>
 
 
@@ -125,14 +125,13 @@ Final Displacement Error (FDE) measures the distance between final predicted pos
 - A survey on motion prediction and risk assessment for intelligent vehicles, ROBOMECH 2014. [paper](https://core.ac.uk/download/pdf/81530180.pdf)
 -->
 
+<!--
 **Collaboration:** Are you interested in collaboration on OpenTraj? Send an email to [me](mailto:amiryan.j@gmail.com?subject=OpenTraj) titled *OpenTraj*.
+-->
+**Contributions:** Have any idea to improve the code? Fork the project, update it and submit a merge request. 
+- Feel free to open new issues.
 
-**Contributions**
-
-We welcome contributions. If you have an idea, you can fork the project, implement it and ask for a merge. 
-Also feel free to open new issues.
-
-If you find this work useful in your research then please cite:
+If you find this work useful in your research, then please cite:
 ```
 @inproceedings{amirian2020opentraj,
       title={OpenTraj: Assessing Prediction Complexity in Human Trajectories Datasets}, 
