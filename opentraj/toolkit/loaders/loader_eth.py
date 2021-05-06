@@ -3,7 +3,7 @@
 
 import numpy as np
 import pandas as pd
-from toolkit.core.trajdataset import TrajDataset
+from opentraj.toolkit.core.trajdataset import TrajDataset
 
 
 def load_eth(path, **kwargs):

@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset
-from toolkit.loaders.loader_eth import load_eth
-from toolkit.loaders.loader_crowds import load_crowds
+from opentraj.toolkit.loaders.loader_eth import load_eth
+from opentraj.toolkit.loaders.loader_crowds import load_crowds
 import numpy as np
 import torch
 import cv2
@@ -76,43 +76,43 @@ class OpTrajData(Dataset):
 
     def getOneFrame(self,item):
         # import pdb; pdb.set_trace()
-        peopleIDs = []
-        locs = []
-        frame = []
-        for window in range(self.input_window + self.output_window):
-            frameID = [self.dataset.data['frame_id'].unique()[item + window]]
-            if self.image is not None:
-                frame.append(self.getImages(frameID))
-            people = self.dataset.get_frames(frameID)[0]
-            peopleIDs.append(people['agent_id'].tolist())
-            locs.append(people.filter(['pos_x', 'pos_y']).to_numpy())
-            if self.image == 'mask':
-                frame = self.getMasks(frame[-1], np.expand_dims(locs[-1], 0))
+        # peopleIDs = []
+        # locs = []
+        # frame = []
+        # for window in range(self.input_window + self.output_window):
+        #     frameID = [self.dataset.data['frame_id'].unique()[item + window]]
+        #     if self.image is not None:
+        #         frame.append(self.getImages(frameID))
+        #     people = self.dataset.get_frames(frameID)[0]
+        #     peopleIDs.append(people['agent_id'].tolist())
+        #     locs.append(people.filter(['pos_x', 'pos_y']).to_numpy())
+        #     if self.image == 'mask':
+        #         frame = self.getMasks(frame[-1], np.expand_dims(locs[-1], 0))
+        #
+        # targ_locs = locs[-self.output_window:]
+        # locs = locs[:self.input_window]
 
-        targ_locs = locs[-self.output_window:]
-        locs = locs[:self.input_window]
-
-        # frameID=[self.dataset.data['frame_id'].unique()[item]]
-        # if self.image is not None:
-        #     frame=self.getImages(frameID)
-        # else:
-        #     frame=[]
-        # people=self.dataset.get_frames(frameID)[0]
-        # targ_people=[]
-        # i=1
-        # while len(targ_people)==0:
-        #     targ_people=self.dataset.get_frames([frameID[0]+i])[0]
-        #     i+=1
-        # inds = targ_people.agent_id.isin(people.agent_id)
-        # targ_people=targ_people[inds]
-        # targ_locs=targ_people.filter(['pos_x','pos_y']).to_numpy()
-        # inds = people.agent_id.isin(targ_people.agent_id)
-        # people = people[inds]
-        # peopleIDs = people['agent_id'].tolist()
-        # locs = people.filter(['pos_x', 'pos_y']).to_numpy()
-        # # import pdb; pdb.set_trace()
-        # if self.image == 'mask':
-        #     frame = self.getMasks(frame, np.expand_dims(locs, 0))
+        frameID=[self.dataset.data['frame_id'].unique()[item]]
+        if self.image is not None:
+            frame=self.getImages(frameID)
+        else:
+            frame=[]
+        people=self.dataset.get_frames(frameID)[0]
+        targ_people=[]
+        i=1
+        while len(targ_people)==0:
+            targ_people=self.dataset.get_frames([frameID[0]+i])[0]
+            i+=1
+        inds = targ_people.agent_id.isin(people.agent_id)
+        targ_people=targ_people[inds]
+        targ_locs=targ_people.filter(['pos_x','pos_y']).to_numpy()
+        inds = people.agent_id.isin(targ_people.agent_id)
+        people = people[inds]
+        peopleIDs = people['agent_id'].tolist()
+        locs = people.filter(['pos_x', 'pos_y']).to_numpy()
+        # import pdb; pdb.set_trace()
+        if self.image == 'mask':
+            frame = self.getMasks(frame, np.expand_dims(locs, 0))
         return [peopleIDs, locs, targ_locs, frame]
 
     def getOneHumanTraj(self,item):
