@@ -11,8 +11,8 @@ from utils import world2image
 class OpTrajData(Dataset):
     def __init__(self,dataset='ETH',mode='by_frame', image=None,input_window=4, output_window=8):
         super(OpTrajData,self).__init__()
-        # self.root='/Users/faith_johnson/GitRepos/OpenTraj/'
-        self.root='/home/faith/GitRepos/OpenTraj/'
+        self.root='/Users/faith_johnson/GitRepos/OpenTraj/'
+        # self.root='/home/faith/GitRepos/OpenTraj/'
         self.mode=mode
         self.image=image
         self.transforms=Compose([GaussianBlur(5)])
