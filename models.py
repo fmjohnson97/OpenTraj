@@ -45,12 +45,14 @@ class CoordLSTM(nn.Module):
     def getHidden(self,personIDs):
         h=[]
         c=[]
-        for p in personIDs:
-            temp = self.h.get(p,(torch.rand(32),torch.rand(32)))
-            h.append(temp[0])
-            c.append(temp[1])
-        # import pdb;pdb.set_trace()
-        return (torch.stack(h).unsqueeze(0).double().to(self.device),torch.stack(c).unsqueeze(0).double().to(self.device))
+        import pdb; pdb.set_trace()
+        for batch in personIDs:
+            for p in batch:
+                temp = self.h.get(p,(torch.rand(1,32),torch.rand(1,32)))#just 32 for size
+                h.append(temp[0])
+                c.append(temp[1])
+        import pdb;pdb.set_trace()
+        return (torch.stack(h).double().to(self.device),torch.stack(c).double().to(self.device))#.unsqueeze(0)
 
     def updateHidden(self,personIDs,h):
         # import pdb;
@@ -59,7 +61,7 @@ class CoordLSTM(nn.Module):
             self.h[p.item()]=(h[0][0][i],h[1][0][i])
 
     def forward(self, peopleIDs, x, gblTensor):
-        # import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         x=self.relu(self.coordEmbed(x))
         x=self.relu(self.socialEmbed(torch.cat((x,gblTensor),-1)))#.reshape(1,64,-1)
         # x = x[0].t().unsqueeze(0)
