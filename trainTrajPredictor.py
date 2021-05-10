@@ -20,12 +20,13 @@ def train(epochs, device, loss, dloaders):
     opt = optim.RMSprop(model.parameters(), lr=5e-4)
     trainLoss = []
     validLoss=[]
+    trackParams=[]
+    random.shuffle(dloaders)
     for e in tqdm(range(epochs)):
         print("Epoch:", e)
         model.train()
         totalLoss = 0
         totLen=0
-        random.shuffle(dloaders)
         for dload in dloaders[:-1]:
             totLen += len(dload)
             for peopleIDs, pos, target, ims in dload:
@@ -38,6 +39,8 @@ def train(epochs, device, loss, dloaders):
                     groupedFeatures = processGroups(gblGroups, pos, 'coords')
                     coeffs = model(torch.tensor(peopleIDs).to(device), pos.double().to(device), torch.stack(groupedFeatures).to(device))
                     outputs, params = model.getCoords(coeffs)
+                    # mux, muy, sx, sy, corr
+                    # trackParams.append([params[0].detach(), params[1].detach(), params[2].detach(), params[3].detach(), params[4].detach()])
                     l = loss(target,params)
                     # import pdb; pdb.set_trace()
                     opt.zero_grad()
@@ -78,7 +81,7 @@ def test(device, loss, dloader, save_path, model=None):
     model.eval()
     totalLoss = 0
     totLen = len(dloader)
-    for peopleIDs, pos, target, ims in tqdm(dloader):
+    for peopleIDs, pos, target, ims in dloader:
         # import pdb; pdb.set_trace()
         if pos.size(1) > 0 and target.size(1) == pos.size(1):
             # outputs=model(pos.double(),target.double())
@@ -86,7 +89,7 @@ def test(device, loss, dloader, save_path, model=None):
             for p in pos:
                 gblGroups.append(computeGlobalGroups(world2image(p, np.linalg.inv(data.H)), model.numGrids, model.gridSize))
             groupedFeatures = processGroups(gblGroups, pos, 'coords')
-            coeffs = model(peopleIDs, pos.double(), torch.stack(groupedFeatures))
+            coeffs = model(torch.tensor(peopleIDs).to(device), pos.double().to(device),torch.stack(groupedFeatures).to(device))
             outputs, params = model.getCoords(coeffs)
             l = loss(target, params)
             totalLoss += l.item()
@@ -110,4 +113,4 @@ train(epochs, device, loss, dloaders)
 
 print('Testing on',test_set.dataset.name)
 model, testLoss = test(device, loss, test_set, 'coordLSTMweights.pt')
-print('Loss:', testLoss)
+print('Test Loss:', testLoss)
