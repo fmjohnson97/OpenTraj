@@ -14,7 +14,7 @@ import random
 
 
 def train(epochs, device, loss, dloaders):
-    model = CoordLSTM(2,32,device)  # SocialTransformer(2)#SocialModel(args)
+    model = CoordLSTM(2,2,device)  # SocialTransformer(2)#SocialModel(args)
     model = model.to(device)
     model = model.double()
     opt = optim.RMSprop(model.parameters(), lr=5e-4)
@@ -60,7 +60,7 @@ def train(epochs, device, loss, dloaders):
         trainLoss.append(totalLoss / totLen)
 
 
-        model, l=test(device,loss,dloaders[-1],None,model)
+        l=test(device,loss,dloaders[-1],None,model)
         validLoss.append(l)
         print('Validation Loss:',l)
         print()
@@ -83,7 +83,7 @@ def train(epochs, device, loss, dloaders):
 def test(device, loss, dloader, save_path, model=None):
     # test loop
     if model is None:
-        model = CoordLSTM(2,32,device)  # SocialTransformer(2)#SocialModel(args)
+        model = CoordLSTM(2,2,device)  # SocialTransformer(2)#SocialModel(args)
         model.load_state_dict(torch.load(save_path))
         model = model.to(device)
         model = model.double()
@@ -107,7 +107,7 @@ def test(device, loss, dloader, save_path, model=None):
                 totalLoss += torch.sum(torch.stack(l)).item() / len(l)
         else:
             totLen -= 1
-    return model, totalLoss / totLen
+    return totalLoss / totLen
 
 
 dloaders=[]
