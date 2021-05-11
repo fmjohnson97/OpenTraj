@@ -14,13 +14,15 @@ import random
 
 
 def train(epochs, device, loss, dloaders):
-    model = CoordLSTM(2,device)  # SocialTransformer(2)#SocialModel(args)
+    model = CoordLSTM(2,32,device)  # SocialTransformer(2)#SocialModel(args)
     model = model.to(device)
     model = model.double()
     opt = optim.RMSprop(model.parameters(), lr=5e-4)
     trainLoss = []
     validLoss=[]
     random.shuffle(dloaders)
+    print('Training on', [d.dataset.name for d in dloaders[:-1]])
+    print('Validating on', dloaders[-1].dataset.name)
     for e in tqdm(range(epochs)):
         print("Epoch:", e)
         model.train()
@@ -36,11 +38,10 @@ def train(epochs, device, loss, dloaders):
                     gblGroups = []
                     for p in pos:
                         gblGroups.append(computeGlobalGroups(world2image(p, np.linalg.inv(data.H)), model.numGrids, model.gridSize))
-                    groupedFeatures = processGroups(gblGroups, pos, 'coords')
+                    groupedFeatures = processGroups(gblGroups, pos, model.h)
                     coeffs = model(torch.tensor(peopleIDs).to(device), pos.double().to(device), torch.stack(groupedFeatures).to(device))
                     outputs, params = model.getCoords(coeffs)
                     # mux, muy, sx, sy, corr
-                    # trackParams.append([params[0].detach(), params[1].detach(), params[2].detach(), params[3].detach(), params[4].detach()])
                     l = loss(target,params,peopleIDs)
                     # import pdb; pdb.set_trace()
                     opt.zero_grad()
@@ -52,7 +53,7 @@ def train(epochs, device, loss, dloaders):
                             l_item.backward(retain_graph=True)
                         totalLoss += torch.sum(torch.stack(l)).item()/len(l)
                     opt.step()
-
+                    # trackParams.append([params[0].detach(), params[1].detach(), params[2].detach(), params[3].detach(), params[4].detach()])
                 else:
                     totLen -= 1
         print('Train Loss:', totalLoss / totLen, 'totLen:', totLen)
@@ -82,7 +83,7 @@ def train(epochs, device, loss, dloaders):
 def test(device, loss, dloader, save_path, model=None):
     # test loop
     if model is None:
-        model = CoordLSTM(2,device)  # SocialTransformer(2)#SocialModel(args)
+        model = CoordLSTM(2,32,device)  # SocialTransformer(2)#SocialModel(args)
         model.load_state_dict(torch.load(save_path))
         model = model.to(device)
         model = model.double()
@@ -119,7 +120,7 @@ epochs = 40
 
 test_ind=random.choice(list(range(len(dloaders))))
 test_set=dloaders.pop(test_ind)
-print('Training on',[d.dataset.name for d in dloaders])
+
 train(epochs, device, loss, dloaders)
 
 print('Testing on',test_set.dataset.name)

@@ -48,22 +48,27 @@ def computeGlobalGroups(x, numGrids, gridSize):
                 gridInds[8].append(i)
     return gridInds
 
-def processGroups(gblVec, features, mode='coords'):
+def processGroups(gblVec, features, hidden=None):
     gblFeatures=[]
     for batch in range(len(features)):
         temp=[[] for x in range(len(features[batch]))]
         for grp in gblVec[batch]:
-            if mode=='coords':
-                for person in grp:
-                    inds=[grp[i] for i in range(len(grp)) if grp[i]!=person]
+            for person in grp:
+                inds=[grp[i] for i in range(len(grp)) if grp[i]!=person]
+                if hidden is None:
                     if len(inds)>0:
                         temp[person] = torch.sum(features[batch][person]-features[batch][inds],0)
                     else:
-                        temp[person] = features[batch][person]
-            elif mode=='hidden':
-                pass
-            else:
-                print('Unknown mode in processGroups (utils.py)')
-                import pdb; pdb.set_trace()
+                        temp[person] = torch.tensor([0,0])#features[batch][person]
+                elif type(hidden)==dict:
+                    # import pdb; pdb.set_trace()
+                    if len(inds)>0:
+                        diffs=features[batch][person]-features[batch][inds]
+                        temp[person] = torch.sum(torch.mm(torch.t(diffs[:,0].unsqueeze(0)),hidden.get(person,(torch.rand(32),torch.rand(32)))[0].unsqueeze(0).double()),0)
+                    else:
+                        temp[person] = torch.tensor([0]*32)#features[batch][person]*hidden.get(person,(torch.rand(32),torch.rand(32)))[0]
+                else:
+                    print('Unknown mode in processGroups (utils.py)')
+                    import pdb; pdb.set_trace()
         gblFeatures.append(torch.stack(temp))
     return gblFeatures

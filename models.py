@@ -28,10 +28,10 @@ class SocialLSTM(nn.Module):
         pass
 
 class CoordLSTM(nn.Module):
-    def __init__(self, infeats, device):
+    def __init__(self, infeats,socialFeats, device):
         super(CoordLSTM,self).__init__()
-        self.coordEmbed=Linear(infeats,64)
-        self.socialEmbed=Linear(64+infeats,64)
+        self.coordEmbed=Linear(infeats,32)
+        self.socialEmbed=Linear(socialFeats,32)
         self.outputEmbed=Linear(32,5)
         self.lstm=LSTM(64,32)
         self.relu=ReLU()
@@ -60,12 +60,12 @@ class CoordLSTM(nn.Module):
 
     def forward(self, peopleIDs, x, gblTensor):
         # import pdb; pdb.set_trace()
-        x=self.relu(self.coordEmbed(x))
-        x=self.relu(self.socialEmbed(torch.cat((x,gblTensor),-1)))#.reshape(1,64,-1)
+        x=self.dropout(self.relu(self.coordEmbed(x)))
+        gblTensor=self.dropout(self.relu(self.socialEmbed(gblTensor.double())))#.reshape(1,64,-1)
         # x = x[0].t().unsqueeze(0)
         h=self.getHidden(peopleIDs)
         try:
-            x, h=self.lstm(x,h)
+            x, h=self.lstm(torch.cat((x,gblTensor),-1),h)
         except Exception as e:
             print(e)
             import pdb;pdb.set_trace()

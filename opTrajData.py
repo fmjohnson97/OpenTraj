@@ -39,7 +39,7 @@ class OpTrajData(Dataset):
             self.H=np.linalg.inv(self.H)
             self.dataset = load_eth(self.root + paths[2])
         elif 'UCY' in dataset:
-            print('WARNING: MASKS/IMAGES ARE NOT CURRENTLY SUPPORTED FOR THIS DATASET')
+            print('WARNING: MASKS/IMAGES ARE NOT CURRENTLY SUPPORTED FOR THIS DATASET:',dataset)
             self.dataset = load_crowds(paths[2], use_kalman=False,homog_file=paths[0])
 
         if self.mode=='by_human':
