@@ -20,13 +20,13 @@ def train(epochs, device, loss, dloaders):
     opt = optim.RMSprop(model.parameters(), lr=5e-4)
     trainLoss = []
     validLoss=[]
-    trackParams=[]
     random.shuffle(dloaders)
     for e in tqdm(range(epochs)):
         print("Epoch:", e)
         model.train()
         totalLoss = 0
         totLen=0
+        trackParams = []
         for dload in dloaders[:-1]:
             totLen += len(dload)
             for peopleIDs, pos, target, ims in dload:
@@ -41,16 +41,24 @@ def train(epochs, device, loss, dloaders):
                     outputs, params = model.getCoords(coeffs)
                     # mux, muy, sx, sy, corr
                     # trackParams.append([params[0].detach(), params[1].detach(), params[2].detach(), params[3].detach(), params[4].detach()])
-                    l = loss(target,params)
+                    l = loss(target,params,peopleIDs)
                     # import pdb; pdb.set_trace()
                     opt.zero_grad()
-                    l.backward()
+                    if len(l)<=1:
+                        l[0].backward()
+                        totalLoss += l[0].item()
+                    else:
+                        for l_item in l:
+                            l_item.backward(retain_graph=True)
+                        totalLoss += torch.sum(torch.stack(l)).item()/len(l)
                     opt.step()
-                    totalLoss += l.item()
+
                 else:
                     totLen -= 1
         print('Train Loss:', totalLoss / totLen, 'totLen:', totLen)
         trainLoss.append(totalLoss / totLen)
+
+
         model, l=test(device,loss,dloaders[-1],None,model)
         validLoss.append(l)
         print('Validation Loss:',l)
@@ -91,8 +99,11 @@ def test(device, loss, dloader, save_path, model=None):
             groupedFeatures = processGroups(gblGroups, pos, 'coords')
             coeffs = model(torch.tensor(peopleIDs).to(device), pos.double().to(device),torch.stack(groupedFeatures).to(device))
             outputs, params = model.getCoords(coeffs)
-            l = loss(target, params)
-            totalLoss += l.item()
+            l = loss(target, params, peopleIDs)
+            if len(l) <= 1:
+                totalLoss += l[0].item()
+            else:
+                totalLoss += torch.sum(torch.stack(l)).item() / len(l)
         else:
             totLen -= 1
     return model, totalLoss / totLen

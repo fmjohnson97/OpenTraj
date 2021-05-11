@@ -105,7 +105,7 @@ class BGNLLLoss(nn.Module):
     def __init__(self):
         super(BGNLLLoss,self).__init__()
 
-    def forward(self,targets,params):
+    def forward(self,targets,params, peopleIDs):
         # modified from https://github.com/quancore/social-lstm
         mux, muy, sx, sy, corr = params[0].cpu(), params[1].cpu(), params[2].cpu(), params[3].cpu(), params[4].cpu()
         normx = targets[:, :, 0] - mux
@@ -119,21 +119,23 @@ class BGNLLLoss(nn.Module):
         result = -torch.log(torch.clamp(result, min=epsilon))
 
         #maybe loss shouldn't be summed over all people?
-        loss = 0
+        loss = [0]*len(peopleIDs)
         counter = 0
-        # import pdb;
-        # pdb.set_trace()
+        # import pdb; pdb.set_trace()
         for frame in range(targets.shape[0]):
             # nodeIDs = nodesPresent[framenum]
             # nodeIDs = [int(nodeID) for nodeID in nodeIDs]
 
             for person in range(targets.shape[1]):
                 # nodeID = look_up[nodeID]
-                loss = loss + result[frame, person]
+                loss[person] += result[frame, person]
                 counter = counter + 1
 
-        if counter != 0:
-            return loss / counter
-        else:
-            return loss
+        #TODO: FIX THIS WHEN CHANGE TO LARGER WINDOW SIZE
+
+        # if counter != 0:
+        #     return loss / counter
+        # else:
+        #     return loss
+        return loss
 
