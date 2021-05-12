@@ -61,9 +61,9 @@ def processGroups(gblVec, features, hidden=None):
                     else:
                         temp[person] = torch.tensor([0,0])#features[batch][person]
                 elif type(hidden)==dict:
-                    # import pdb; pdb.set_trace()
-                    if len(inds)>0:
-                        temp[person] = hidden.get(person,(torch.rand(32),torch.rand(32)))[0].double()
+                    # import pdb;pdb.set_trace()
+                    if len(inds)>1:
+                        temp[person]=torch.sum(torch.stack([hidden.get(neighbor,(torch.rand(32),torch.rand(32)))[0].double() for neighbor in inds]),0)
                     else:
                         temp[person] = torch.tensor([0]*32)
                 else:
