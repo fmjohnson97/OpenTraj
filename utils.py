@@ -64,8 +64,8 @@ def processGroups(gblVec, features, hidden=None):
                     # import pdb; pdb.set_trace()
                     if len(inds)>0:
                         diffs=features[batch][person]-features[batch][inds]
-                        dx=torch.sum(torch.mm(torch.t(diffs[:,0].unsqueeze(0)),hidden.get(person,(torch.rand(32),torch.rand(32)))[0].unsqueeze(0).double()),0)
-                        dy=torch.sum(torch.mm(torch.t(diffs[:,1].unsqueeze(0)),hidden.get(person,(torch.rand(32),torch.rand(32)))[0].unsqueeze(0).double()),0)
+                        dx=torch.sum(torch.mm(torch.t(diffs[:,0].unsqueeze(0)),hidden.get(person,(torch.rand(32),torch.rand(32)))[0].unsqueeze(0).double().cpu()),0)
+                        dy=torch.sum(torch.mm(torch.t(diffs[:,1].unsqueeze(0)),hidden.get(person,(torch.rand(32),torch.rand(32)))[0].unsqueeze(0).double().cpu()),0)
                         #making this one number so it will fit into the network but I don't like it like that
                         temp[person] = torch.cat((torch.sum(dx).unsqueeze(0), torch.sum(dy).unsqueeze(0)), 0)
                         # temp[person] = torch.cat((dx.unsqueeze(0),dy.unsqueeze(0)),0)
