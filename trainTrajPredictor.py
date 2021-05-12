@@ -14,7 +14,7 @@ import random
 
 
 def train(epochs, device, loss, dloaders):
-    model = CoordLSTM(2,2,device)  # SocialTransformer(2)#SocialModel(args)
+    model = CoordLSTM(2,32,device)  # SocialTransformer(2)#SocialModel(args)
     model = model.to(device)
     model = model.double()
     opt = optim.RMSprop(model.parameters(), lr=5e-4)
@@ -83,7 +83,7 @@ def train(epochs, device, loss, dloaders):
 def test(device, loss, dloader, save_path, model=None):
     # test loop
     if model is None:
-        model = CoordLSTM(2,2,device)  # SocialTransformer(2)#SocialModel(args)
+        model = CoordLSTM(2,32,device)  # SocialTransformer(2)#SocialModel(args)
         model.load_state_dict(torch.load(save_path))
         model = model.to(device)
         model = model.double()
@@ -111,7 +111,7 @@ def test(device, loss, dloader, save_path, model=None):
 
 
 dloaders=[]
-for name in ['ETH_Hotel']:#['ETH','ETH_Hotel','UCY_Zara1','UCY_Zara2']:
+for name in ['ETH','ETH_Hotel','UCY_Zara1','UCY_Zara2']:
     data = OpTrajData(name, 'by_frame', 'mask')
     dloaders.append(DataLoader(data, batch_size=1, shuffle=False, drop_last=False))
 loss = BGNLLLoss()
@@ -121,7 +121,7 @@ epochs = 40
 test_ind=random.choice(list(range(len(dloaders))))
 test_set=dloaders.pop(test_ind)
 
-# train(epochs, device, loss, dloaders)
+train(epochs, device, loss, dloaders)
 
 print('Testing on',test_set.dataset.name)
 testLoss = test(device, loss, test_set, 'coordLSTMweights.pt')
