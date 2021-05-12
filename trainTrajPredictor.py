@@ -97,7 +97,7 @@ def test(device, loss, dloader, save_path, model=None):
             gblGroups = []
             for p in pos:
                 gblGroups.append(computeGlobalGroups(world2image(p, np.linalg.inv(data.H)), model.numGrids, model.gridSize))
-            groupedFeatures = processGroups(gblGroups, pos, 'coords')
+            groupedFeatures = processGroups(gblGroups, pos, model.h)
             coeffs = model(torch.tensor(peopleIDs).to(device), pos.double().to(device),torch.stack(groupedFeatures).to(device))
             outputs, params = model.getCoords(coeffs)
             l = loss(target, params, peopleIDs)
