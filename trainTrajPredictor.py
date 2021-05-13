@@ -13,10 +13,16 @@ from utils import world2image, computeGlobalGroups, processGroups
 import random
 
 
-def train(epochs, device, loss, dloaders):
-    model = CoordLSTM(2,32,device)  # SocialTransformer(2)#SocialModel(args)
-    model = model.to(device)
-    model = model.double()
+def train(epochs, device, loss, dloaders, checkPoint=False):
+    if checkPoint:
+        model = CoordLSTM(2, 32, device)  # SocialTransformer(2)#SocialModel(args)
+        model.load_state_dict(torch.load('socLSTM.pt'))
+        model = model.to(device)
+        model = model.double()
+    else:
+        model = CoordLSTM(2,32,device)  # SocialTransformer(2)#SocialModel(args)
+        model = model.to(device)
+        model = model.double()
     opt = optim.RMSprop(model.parameters(), lr=5e-4)
     trainLoss = []
     validLoss=[]
@@ -31,6 +37,7 @@ def train(epochs, device, loss, dloaders):
         trackParams = []
         for dload in dloaders[:-1]:
             totLen += len(dload)
+            model.h={}
             for peopleIDs, pos, target, ims in dload:
                 # import pdb; pdb.set_trace()
                 if pos.size(1) > 0 and target.size(1) == pos.size(1):
@@ -59,25 +66,16 @@ def train(epochs, device, loss, dloaders):
         print('Train Loss:', totalLoss / totLen, 'totLen:', totLen)
         trainLoss.append(totalLoss / totLen)
 
-
+        model.h={}
         l=test(device,loss,dloaders[-1],None,model)
         validLoss.append(l)
         print('Validation Loss:',l)
         print()
-        torch.save(model.state_dict(), 'coordLSTMweights.pt')
-    print(trainLoss)
-    print(validLoss)
-    try:
-        plt.plot(trainLoss)
-        plt.plot(validLoss)
-        plt.title('Training Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Bivariate Gaussian NLL')
-        plt.legend(['Training Loss','Validation Loss'])
-        plt.show()
-    except Exception as e:
-        print(e)
-        import pdb; pdb.set_trace()
+        torch.save(model.state_dict(), 'socLSTM.pt')
+    # print(trainLoss)
+    # print(validLoss)
+    return trainLoss, validLoss
+
 
 
 def test(device, loss, dloader, save_path, model=None):
@@ -111,7 +109,7 @@ def test(device, loss, dloader, save_path, model=None):
 
 
 dloaders=[]
-for name in ['ETH','ETH_Hotel','UCY_Zara1','UCY_Zara2']:
+for name in ['ETH','ETH_Hotel','UCY_Zara1','UCY_Zara2']:#['UCY_Zara2']:#
     data = OpTrajData(name, 'by_frame', 'mask')
     dloaders.append(DataLoader(data, batch_size=1, shuffle=False, drop_last=False))
 loss = BGNLLLoss()
@@ -121,8 +119,16 @@ epochs = 40
 test_ind=random.choice(list(range(len(dloaders))))
 test_set=dloaders.pop(test_ind)
 
-train(epochs, device, loss, dloaders)
+trainLoss, validLoss = train(epochs, device, loss, dloaders, checkPoint=True)
 
 print('Testing on',test_set.dataset.name)
-testLoss = test(device, loss, test_set, 'coordLSTMweights.pt')
+testLoss = test(device, loss, test_set, 'socLSTM.pt')
 print('Test Loss:', testLoss)
+
+plt.plot(trainLoss)
+plt.plot(validLoss)
+plt.title('SLSTM Training Loss; Test on'+test_set.dataset.name+'='+str(testLoss)[:6])
+plt.xlabel('Epoch')
+plt.ylabel('Bivariate Gaussian NLL')
+plt.legend(['Training Loss', 'Validation Loss'])
+plt.show()
