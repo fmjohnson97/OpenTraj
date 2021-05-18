@@ -8,8 +8,9 @@ def world2image(traj_w, H_inv):
     # to camera frame
     traj_cam = np.matmul(H_inv, traj_homog)
     # to pixel coords
-    traj_uvz = np.transpose(traj_cam/traj_cam[2])
+    traj_uvz = np.transpose(traj_cam / traj_cam[2])
     return traj_uvz[:, :2].astype(int)
+
 
 def computeGlobalGroups(x, numGrids, gridSize):
     # x is the vector of positions for each person (numPeople,2)
@@ -17,64 +18,60 @@ def computeGlobalGroups(x, numGrids, gridSize):
     # gridSize is (x grid dimension, y grid dimension)
 
     # import pdb; pdb.set_trace()
-    #define variables
+    # define variables
     xGrids = [gridSize[0] / numGrids[0] * i for i in range(1, numGrids[0] + 1)]
     yGrids = [gridSize[1] / numGrids[1] * i for i in range(1, numGrids[1] + 1)]
-    numPeds=x.shape[-2]
-    gridInds=[[] for x in range(numGrids[0]*numGrids[1])]
+    numPeds = x.shape[(-2)]
+    gridInds = [[] for x in range(numGrids[0] * numGrids[1])]
 
     # get the indexes of the people in each grid square
     for i in range(numPeds):
-        if x[i][0]<xGrids[0]:
-            if x[i][1]<yGrids[0]:
+        if x[i][0] < xGrids[0]:
+            if x[i][1] < yGrids[0]:
                 gridInds[0].append(i)
-            elif x[i][1]<yGrids[1]:
+            elif x[i][1] < yGrids[1]:
                 gridInds[3].append(i)
             else:
                 gridInds[6].append(i)
-        elif x[i][0]<xGrids[1]:
-            if x[i][1]<yGrids[0]:
+        elif x[i][0] < xGrids[1]:
+            if x[i][1] < yGrids[0]:
                 gridInds[1].append(i)
-            elif x[i][1]<yGrids[1]:
+            elif x[i][1] < yGrids[1]:
                 gridInds[4].append(i)
             else:
                 gridInds[7].append(i)
         else:
-            if x[i][1]<yGrids[0]:
+            if x[i][1] < yGrids[0]:
                 gridInds[2].append(i)
-            elif x[i][1]<yGrids[1]:
+            elif x[i][1] < yGrids[1]:
                 gridInds[5].append(i)
             else:
                 gridInds[8].append(i)
-    # import pdb; pdb.set_trace()
-    # returns [batch, 1, 9] list
+
     return gridInds
 
-<<<<<<< Updated upstream
-def processGroups(gblVec, features, mode='coords'):
-=======
+
 def processGroups(gblVec, features, hidden=None):
->>>>>>> Stashed changes
-    # import pdb; pdb.set_trace()
-    gblFeatures=[]
+    gblFeatures = []
     for batch in range(len(features)):
-        temp=[[] for x in range(len(features[batch][0]))]
+        temp = [[] for x in range(len(features[batch][0]))]
         for grp in gblVec[batch]:
-            if mode=='coords':
-                for person in grp:
-                    import pdb; pdb.set_trace()
-                    inds=[grp[i] for i in range(len(grp)) if grp[i]!=person]
-                    if len(inds)>0:
-                        temp[person] = torch.sum(features[batch][0][person]-features[batch][0][inds],0)
+            for person in grp:
+                inds = [grp[i] for i in range(len(grp)) if grp[i] != person]
+                if hidden is None:
+                    if len(inds) > 0:
+                        temp[person] = torch.sum(features[batch][0][person] - features[batch][0][inds], 0)
                     else:
-                        temp[person] = features[batch][person]
-            elif mode=='hidden':
-                pass
-            else:
-                print('Unknown mode in processGroups (utils.py)')
-                import pdb; pdb.set_trace()
-        # import pdb; pdb.set_trace()
+                        temp[person] = torch.tensor([0, 0])
+                elif type(hidden) == dict:
+                    if len(inds) > 1:
+                        temp[person] = torch.sum(torch.stack([hidden.get(neighbor, (torch.rand(32), torch.rand(32)))[0].double().cpu() for neighbor in inds]), 0)
+                    else:
+                        temp[person] = torch.tensor([0] * 32)
+                else:
+                    print('Unknown mode in processGroups (utils.py)')
+                    import pdb;pdb.set_trace()
+
         gblFeatures.append(torch.stack(temp))
-    # import pdb; pdb.set_trace()
-    # returns [batch, p, 32] list
+
     return gblFeatures
