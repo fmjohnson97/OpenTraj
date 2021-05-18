@@ -73,27 +73,32 @@ class CoordLSTM(nn.Module):
 
     def getCoords(self, output):
         # modified from https://github.com/quancore/social-lstm
-        import pdb;pdb.set_trace()
-        mux, muy, sx, sy, corr = (output[:, :, 0], output[:, :, 1], output[:, :, 2], output[:, :, 3], output[:, :, 4])
+        # import pdb;pdb.set_trace()
+        mux, muy, sx, sy, corr = output[:, :, 0], output[:, :, 1], output[:, :, 2], output[:, :, 3], output[:, :, 4]
         sx = torch.exp(sx)
         sy = torch.exp(sy)
         corr = torch.tanh(corr)
-        o_mux, o_muy, o_sx, o_sy, o_corr = (
-         mux[0, :], muy[0, :], sx[0, :], sy[0, :], corr[0, :])
-        numNodes = mux.size()[1]
-        next_x = torch.zeros(numNodes)
-        next_y = torch.zeros(numNodes)
-        for node in range(numNodes):
-            mean = [o_mux[node], o_muy[node]]
-            cov = [[o_sx[node] * o_sx[node], o_corr[node] * o_sx[node] * o_sy[node]],
-                   [o_corr[node] * o_sx[node] * o_sy[node], o_sy[node] * o_sy[node]]]
-            mean = np.array(mean, dtype='float')
-            cov = np.array(cov, dtype='float')
-            next_values = np.random.multivariate_normal(mean, cov, 1)
-            next_x[node] = next_values[0][0]
-            next_y[node] = next_values[0][1]
+
+        coords = []
+        for batch in range(output.shape[0]):
+            o_mux, o_muy, o_sx, o_sy, o_corr = mux[batch, :], muy[batch, :], sx[batch, :], sy[batch, :], corr[batch, :]
+            numNodes = o_mux.shape[0]
+            next_x = torch.zeros(numNodes)
+            next_y = torch.zeros(numNodes)
+
+            for node in range(numNodes):
+                mean = [o_mux[node], o_muy[node]]
+                cov = [[o_sx[node] * o_sx[node], o_corr[node] * o_sx[node] * o_sy[node]],
+                       [o_corr[node] * o_sx[node] * o_sy[node], o_sy[node] * o_sy[node]]]
+                mean = np.array(mean, dtype='float')
+                cov = np.array(cov, dtype='float')
+                next_values = np.random.multivariate_normal(mean, cov, 1)
+                next_x[node] = next_values[0][0]
+                next_y[node] = next_values[0][1]
+            coords.append(np.concatenate((next_x.reshape(-1, 1), next_y.reshape(-1, 1)),1))
         # import pdb; pdb.set_trace()
-        return (torch.cat((next_x.reshape(-1, 1), next_y.reshape(-1, 1)), -1), [mux.squeeze(0), muy.squeeze(0), sx.squeeze(0), sy.squeeze(0), corr.squeeze(0)])
+        # return torch.cat((next_x.reshape(-1, 1), next_y.reshape(-1, 1)), -1), [mux.squeeze(0), muy.squeeze(0), sx.squeeze(0), sy.squeeze(0), corr.squeeze(0)]
+        return coords
 
 
 class BGNLLLoss(nn.Module):
@@ -103,16 +108,23 @@ class BGNLLLoss(nn.Module):
     def forward(self, targets, params, peopleIDs):
         # modified from https://github.com/quancore/social-lstm
         import pdb; pdb.set_trace()
-        mux, muy, sx, sy, corr = (params[0].cpu(), params[1].cpu(), params[2].cpu(), params[3].cpu(), params[4].cpu())
-        normx = targets[:, :, 0] - mux
-        normy = targets[:, :, 1] - muy
-        sxsy = sx * sy
+        mux, muy, sx, sy, corr = params[:, :, 0], params[:, :, 1], params[:, :, 2], params[:, :, 3], params[:, :, 4]
+        sx = torch.exp(sx)
+        sy = torch.exp(sy)
+        corr = torch.tanh(corr)
 
-        z = (normx / sx) ** 2 + (normy / sy) ** 2 - 2 * (corr * normx * normy / sxsy)
-        negRho = 1 - corr ** 2
-        result = torch.exp(-z / (2 * negRho)) / (2 * np.pi * (sxsy * torch.sqrt(negRho)))
-        epsilon = 1e-20
-        result = -torch.log(torch.clamp(result, min=epsilon))
+        #TODO: How to fix the size mis match?? have to compute loss per person then...
+        batchLoss=[]
+        for batch in range(len(targets)):
+            normx = targets[batch][:, :, 0].squeeze(0) - mux[batch]
+            normy = targets[batch][:, :, 1].squeeze(0) - muy[batch]
+            sxsy = sx[batch] * sy[batch]
+
+            z = (normx / sx[batch]) ** 2 + (normy / sy[batch]) ** 2 - 2 * (corr[batch] * normx * normy / sxsy)
+            negRho = 1 - corr[batch] ** 2
+            result = torch.exp(-z / (2 * negRho)) / (2 * np.pi * (sxsy * torch.sqrt(negRho)))
+            epsilon = 1e-20
+            result = -torch.log(torch.clamp(result, min=epsilon))
 
         loss = [0] * len(peopleIDs)
         counter = 0

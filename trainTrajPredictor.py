@@ -50,13 +50,14 @@ def train(epochs, device, loss, dloaders, checkPoint=False):
                     for p in pos:
                         gblGroups.append(computeGlobalGroups(world2image(p[0], np.linalg.inv(data.H)), model.numGrids, model.gridSize))
                     groupedFeatures = processGroups(gblGroups, pos, model.h)
-                    # import pdb; pdb.set_trace()
+                    import pdb; pdb.set_trace()
                     # solution is to assume that its the same p people in al input frames so only using the people in the
                     # first peopleIDs list
-                    coeffs = model(torch.tensor(peopleIDs[0]), torch.stack(pos).squeeze(1).double().to(device), torch.stack(groupedFeatures).to(device))
-                    outputs, params = model.getCoords(coeffs)
                     # mux, muy, sx, sy, corr
-                    l = loss(target,params,peopleIDs)
+                    coeffs = model(torch.tensor(peopleIDs[0]), torch.stack(pos).squeeze(1).double().to(device), torch.stack(groupedFeatures).to(device))
+                    outputs = model.getCoords(coeffs) #these are the positions for when you want to plot those
+
+                    l = loss(target,coeffs,peopleIDs)
                     # import pdb; pdb.set_trace()
                     opt.zero_grad()
                     if len(l)<=1:
@@ -104,8 +105,8 @@ def test(device, loss, dloader, save_path, model=None):
                 gblGroups.append(computeGlobalGroups(world2image(p, np.linalg.inv(data.H)), model.numGrids, model.gridSize))
             groupedFeatures = processGroups(gblGroups, pos, model.h)
             coeffs = model(torch.tensor(peopleIDs).to(device), pos.double().to(device),torch.stack(groupedFeatures).to(device))
-            outputs, params = model.getCoords(coeffs)
-            l = loss(target, params, peopleIDs)
+            outputs = model.getCoords(coeffs)
+            l = loss(target, coeffs, peopleIDs)
             if len(l) <= 1:
                 totalLoss += l[0].item()
             else:
