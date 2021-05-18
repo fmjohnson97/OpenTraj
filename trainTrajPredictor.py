@@ -126,7 +126,7 @@ epochs = 40
 test_ind=random.choice(list(range(len(dloaders))))
 test_set=dloaders.pop(test_ind)
 
-trainLoss, validLoss = train(epochs, device, loss, dloaders, checkPoint=True)
+trainLoss, validLoss = train(epochs, device, loss, dloaders, checkPoint=False)
 
 print('Testing on',test_set.dataset.name)
 testLoss = test(device, loss, test_set, 'socLSTM.pt')
