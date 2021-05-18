@@ -24,6 +24,7 @@ def train(epochs, device, loss, dloader):
     for e in range(epochs):
         print("Epoch:", e)
         totalLoss = 0
+<<<<<<< Updated upstream
         totLen = len(dloader)
         for peopleIDs, pos, target, ims in tqdm(dloader):
             pos=torch.stack(pos)
@@ -57,6 +58,55 @@ def train(epochs, device, loss, dloader):
     except Exception as e:
         print(e)
         import pdb; pdb.set_trace()
+=======
+        totLen=0
+        trackParams = []
+        for dload in dloaders[:-1]:
+            totLen += len(dload)
+            model.h={}
+            for peopleIDs, pos, target, ims in dload:
+                # import pdb; pdb.set_trace()
+                if len(pos[0][0])==len(pos[1][0]) and len(pos[1][0])==len(pos[2][0]) and len(pos[2][0])==len(pos[3][0]):#pos.size(1) > 0 and target.size(1) == pos.size(1):
+                    # import pdb; pdb.set_trace()
+                    # outputs=model(pos.double(),target.double())
+                    gblGroups = []
+                    for p in pos:
+                        gblGroups.append(computeGlobalGroups(world2image(p[0], np.linalg.inv(data.H)), model.numGrids, model.gridSize))
+                    groupedFeatures = processGroups(gblGroups, pos, model.h)
+                    # import pdb; pdb.set_trace()
+                    # solution is to assume that its the same p people in al input frames so only using the people in the
+                    # first peopleIDs list
+                    coeffs = model(torch.tensor(peopleIDs[0]), torch.stack(pos).squeeze(1).double().to(device), torch.stack(groupedFeatures).to(device))
+                    outputs, params = model.getCoords(coeffs)
+                    # mux, muy, sx, sy, corr
+                    l = loss(target,params,peopleIDs)
+                    # import pdb; pdb.set_trace()
+                    opt.zero_grad()
+                    if len(l)<=1:
+                        l[0].backward()
+                        totalLoss += l[0].item()
+                    else:
+                        for l_item in l:
+                            l_item.backward(retain_graph=True)
+                        totalLoss += torch.sum(torch.stack(l)).item()/len(l)
+                    opt.step()
+                    # trackParams.append([params[0].detach(), params[1].detach(), params[2].detach(), params[3].detach(), params[4].detach()])
+                else:
+                    totLen -= 1
+        print('Train Loss:', totalLoss / totLen, 'totLen:', totLen)
+        trainLoss.append(totalLoss / totLen)
+
+        model.h={}
+        l=test(device,loss,dloaders[-1],None,model)
+        validLoss.append(l)
+        print('Validation Loss:',l)
+        print()
+        torch.save(model.state_dict(), 'socLSTM.pt')
+    # print(trainLoss)
+    # print(validLoss)
+    return trainLoss, validLoss
+
+>>>>>>> Stashed changes
 
 
 def test(device, loss, dloader, save_path):
@@ -92,7 +142,18 @@ loss = BGNLLLoss()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 epochs = 40
 
+<<<<<<< Updated upstream
 train(epochs, device, loss, dloader)
+=======
+test_ind=random.choice(list(range(len(dloaders))))
+test_set=dloaders.pop(test_ind)
+
+trainLoss, validLoss = train(epochs, device, loss, dloaders)#, checkPoint=True)
+
+print('Testing on',test_set.dataset.name)
+testLoss = test(device, loss, test_set, 'socLSTM.pt')
+print('Test Loss:', testLoss)
+>>>>>>> Stashed changes
 
 data = OpTrajData('UCY', 'by_frame', None)
 dloader = DataLoader(data, batch_size=1, shuffle=False, drop_last=False)

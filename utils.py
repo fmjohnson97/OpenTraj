@@ -46,20 +46,26 @@ def computeGlobalGroups(x, numGrids, gridSize):
                 gridInds[5].append(i)
             else:
                 gridInds[8].append(i)
+    # import pdb; pdb.set_trace()
+    # returns [batch, 1, 9] list
     return gridInds
 
+<<<<<<< Updated upstream
 def processGroups(gblVec, features, mode='coords'):
+=======
+def processGroups(gblVec, features, hidden=None):
+>>>>>>> Stashed changes
     # import pdb; pdb.set_trace()
     gblFeatures=[]
     for batch in range(len(features)):
-        temp=[[] for x in range(len(features[batch]))]
+        temp=[[] for x in range(len(features[batch][0]))]
         for grp in gblVec[batch]:
             if mode=='coords':
                 for person in grp:
                     import pdb; pdb.set_trace()
                     inds=[grp[i] for i in range(len(grp)) if grp[i]!=person]
                     if len(inds)>0:
-                        temp[person] = torch.sum(features[batch][person]-features[batch][inds],0)
+                        temp[person] = torch.sum(features[batch][0][person]-features[batch][0][inds],0)
                     else:
                         temp[person] = features[batch][person]
             elif mode=='hidden':
@@ -69,4 +75,6 @@ def processGroups(gblVec, features, mode='coords'):
                 import pdb; pdb.set_trace()
         # import pdb; pdb.set_trace()
         gblFeatures.append(torch.stack(temp))
+    # import pdb; pdb.set_trace()
+    # returns [batch, p, 32] list
     return gblFeatures

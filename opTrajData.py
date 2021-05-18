@@ -9,7 +9,7 @@ from torchvision.transforms import Compose, Resize, GaussianBlur
 from utils import world2image
 
 class OpTrajData(Dataset):
-    def __init__(self,dataset='ETH',mode='by_frame', image=None,input_window=4, output_window=8):
+    def __init__(self,dataset='ETH',mode='by_frame', image=None,input_window=4):#, output_window=8):
         super(OpTrajData,self).__init__()
         self.root='/Users/faith_johnson/GitRepos/OpenTraj/'
         # self.root='/home/faith/GitRepos/OpenTraj/'
@@ -17,9 +17,22 @@ class OpTrajData(Dataset):
         self.image=image
         self.transforms=Compose([GaussianBlur(5)])
         self.input_window = input_window
+<<<<<<< Updated upstream
         self.output_window = output_window
         if dataset=='ETH':
             self.H = np.loadtxt(self.root + 'datasets/ETH/seq_eth/H.txt')
+=======
+        self.output_window = input_window#output_window
+        try:
+            paths=self.paths[dataset]
+        except Exception as e:
+            print(e)
+            print('Unsupported Dataset for OpTrajData:',dataset)
+            import pdb; pdb.set_trace()
+        self.H = np.loadtxt(self.root + paths[0])
+        self.video=cv2.VideoCapture(self.root+paths[1])
+        if 'ETH' in dataset:
+>>>>>>> Stashed changes
             self.H=np.linalg.inv(self.H)
             video_path = 'datasets/ETH/seq_eth/video.avi'
             self.dataset=load_eth(self.root+'/datasets/ETH/seq_eth/obsmat.txt')
@@ -55,9 +68,13 @@ class OpTrajData(Dataset):
     def __getitem__(self, item):
         if self.mode=='by_human':
             pos, pos_1, frame = self.getOneHumanTraj(item)
+            print('This might have errors, please check!')
+            import pdb; pdb.set_trace()
             return pos, pos_1, frame
         elif self.mode=='by_frame':
             peopleIDs, pos, pos_1, frame = self.getOneFrame(item)
+            # import pdb; pdb.set_trace()
+            #returns [p], [batch, p, 2], [batch, p, 2]
             return peopleIDs, pos, pos_1, frame
 
     def getMasks(self,im,locs):
@@ -75,6 +92,7 @@ class OpTrajData(Dataset):
         return frames
 
     def getOneFrame(self,item):
+<<<<<<< Updated upstream
 
         peopleIDs = []
         locs = []
@@ -89,6 +107,22 @@ class OpTrajData(Dataset):
             if self.image == 'mask':
                 frame = self.getMasks(frame[-1], np.expand_dims(locs[-1], 0))
         import pdb; pdb.set_trace()
+=======
+        # import pdb; pdb.set_trace()
+        peopleIDs = []
+        locs = []
+        frame = []
+        for window in range(self.input_window + self.output_window):
+            frameID = [self.dataset.data['frame_id'].unique()[item + window]]
+            if self.image is not None:
+                frame.append(self.getImages(frameID))
+            people = self.dataset.get_frames(frameID)[0]
+            peopleIDs.append(people['agent_id'].tolist())
+            locs.append(people.filter(['pos_x', 'pos_y']).to_numpy())
+            if self.image == 'mask':
+                frame = self.getMasks(frame[-1], np.expand_dims(locs[-1], 0))
+
+>>>>>>> Stashed changes
         targ_locs = locs[-self.output_window:]
         locs = locs[:self.input_window]
 

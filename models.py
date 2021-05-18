@@ -45,6 +45,7 @@ class CoordLSTM(nn.Module):
     def getHidden(self,personIDs):
         h=[]
         c=[]
+<<<<<<< Updated upstream
         import pdb; pdb.set_trace()
         for batch in personIDs:
             for p in batch:
@@ -53,10 +54,18 @@ class CoordLSTM(nn.Module):
                 c.append(temp[1])
         import pdb;pdb.set_trace()
         return (torch.stack(h).double().to(self.device),torch.stack(c).double().to(self.device))#.unsqueeze(0)
+=======
+        for p in personIDs:
+            temp = self.h.get(p,(torch.rand(32),torch.rand(32)))
+            h.append(temp[0])
+            c.append(temp[1])
+        # import pdb;pdb.set_trace()
+        # returns [batch, p, 32] list
+        return (torch.stack(h).unsqueeze(0).double().to(self.device),torch.stack(c).unsqueeze(0).double().to(self.device))
+>>>>>>> Stashed changes
 
     def updateHidden(self,personIDs,h):
-        # import pdb;
-        # pdb.set_trace()
+        # import pdb;pdb.set_trace()
         for i,p in enumerate(personIDs):
             self.h[p.item()]=(h[0][0][i],h[1][0][i])
 
@@ -73,32 +82,35 @@ class CoordLSTM(nn.Module):
             import pdb;pdb.set_trace()
         self.updateHidden(peopleIDs,(h[0].detach(),h[1].detach()))
         x=self.outputEmbed(x)
+        # import pdb; pdb.set_trace()
+        #returns [batch, 1, p, 5] list
         return x
 
     def getCoords(self,output):
         #modified from https://github.com/quancore/social-lstm
+        import pdb; pdb.set_trace()
         mux, muy, sx, sy, corr = output[:, :, 0], output[:, :, 1], output[:, :, 2], output[:, :, 3], output[:, :,4]
 
         sx = torch.exp(sx)
         sy = torch.exp(sy)
         corr = torch.tanh(corr)
 
-        #may not need this line
-        o_mux, o_muy, o_sx, o_sy, o_corr = mux[0, :], muy[0, :], sx[0, :], sy[0, :], corr[0, :]
+        for batch in range(output.shape[0]):
+            o_mux, o_muy, o_sx, o_sy, o_corr = mux[0, :], muy[0, :], sx[0, :], sy[0, :], corr[0, :]
 
-        numNodes = mux.size()[1]
-        next_x = torch.zeros(numNodes)
-        next_y = torch.zeros(numNodes)
-        for node in range(numNodes):
-            mean = [o_mux[node], o_muy[node]]
-            cov = [[o_sx[node] * o_sx[node], o_corr[node] * o_sx[node] * o_sy[node]],
-                   [o_corr[node] * o_sx[node] * o_sy[node], o_sy[node] * o_sy[node]]]
+            numNodes = mux.size()[1]
+            next_x = torch.zeros(numNodes)
+            next_y = torch.zeros(numNodes)
+            for node in range(numNodes):
+                mean = [o_mux[node], o_muy[node]]
+                cov = [[o_sx[node] * o_sx[node], o_corr[node] * o_sx[node] * o_sy[node]],
+                       [o_corr[node] * o_sx[node] * o_sy[node], o_sy[node] * o_sy[node]]]
 
-            mean = np.array(mean, dtype='float')
-            cov = np.array(cov, dtype='float')
-            next_values = np.random.multivariate_normal(mean, cov, 1)
-            next_x[node] = next_values[0][0]
-            next_y[node] = next_values[0][1]
+                mean = np.array(mean, dtype='float')
+                cov = np.array(cov, dtype='float')
+                next_values = np.random.multivariate_normal(mean, cov, 1)
+                next_x[node] = next_values[0][0]
+                next_y[node] = next_values[0][1]
 
         # import pdb; pdb.set_trace()
         return torch.cat((next_x.reshape(-1,1), next_y.reshape(-1,1)),-1), [mux.squeeze(0), muy.squeeze(0), sx.squeeze(0), sy.squeeze(0), corr.squeeze(0)]
@@ -109,6 +121,7 @@ class BGNLLLoss(nn.Module):
 
     def forward(self,targets,params):
         # modified from https://github.com/quancore/social-lstm
+        import pdb; pdb.set_trace()
         mux, muy, sx, sy, corr = params[0].cpu(), params[1].cpu(), params[2].cpu(), params[3].cpu(), params[4].cpu()
         normx = targets[:, :, 0] - mux
         normy = targets[:, :, 1] - muy
@@ -134,8 +147,20 @@ class BGNLLLoss(nn.Module):
                 loss = loss + result[frame, person]
                 counter = counter + 1
 
+<<<<<<< Updated upstream
         if counter != 0:
             return loss / counter
         else:
             return loss
+=======
+        #TODO: FIX THIS WHEN CHANGE TO LARGER WINDOW SIZE
+
+        # if counter != 0:
+        #     return loss / counter
+        # else:
+        #     return loss
+
+        # returns [batch, p] list
+        return loss
+>>>>>>> Stashed changes
 
